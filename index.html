@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cortex — узнай свой уровень IQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12141c;
+    --surface:#1a1d29;
+    --surface-2:#232838;
+    --border:#2c3145;
+    --accent:#7c5cff;
+    --accent-dim:#4a3a99;
+    --gold:#f5b942;
+    --text:#edebf5;
+    --muted:#8b8fa3;
+    --success:#4ade80;
+    --danger:#ff6b6b;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  #app{max-width:760px;margin:0 auto;padding:24px 20px 80px;min-height:100vh;position:relative;z-index:1;}
+
+  /* ---------- Ambient background decoration ---------- */
+  .bg-decor{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .bg-shape{
+    position:absolute;font-family:'Space Grotesk',sans-serif;font-weight:600;
+    color:var(--accent);opacity:.09;user-select:none;
+    animation:floatShape 16s ease-in-out infinite;
+  }
+  .bg-shape.gold{color:var(--gold);}
+  @keyframes floatShape{
+    0%,100%{transform:translateY(0) rotate(0deg);}
+    50%{transform:translateY(-26px) rotate(10deg);}
+  }
+  @media (max-width:640px){ .bg-decor{opacity:.6;} }
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  /* ---------- Layout helpers ---------- */
+  .screen{animation:fadeUp .5s ease both;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  @media (prefers-reduced-motion: reduce){
+    .screen{animation:none;}
+    *{animation-duration:.001s !important; transition-duration:.001s !important;}
+  }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    display:flex;align-items:center;gap:8px;
+    margin-bottom:14px;
+  }
+  .eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(124,92,255,.18);}
+
+  /* ---------- Hero ---------- */
+  .hero-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:36px;}
+  .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;}
+  .logo-mark{width:22px;height:22px;position:relative;flex-shrink:0;}
+
+  .hero h1{
+    font-size:42px;line-height:1.08;font-weight:700;letter-spacing:-.02em;margin:0 0 18px;
+  }
+  .hero h1 em{font-style:normal;color:var(--accent);}
+  .hero p.sub{font-size:16px;line-height:1.6;color:var(--muted);max-width:520px;margin:0 0 30px;}
+
+  .neuro-wrap{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:22px;margin-bottom:30px;overflow:hidden;position:relative;
+  }
+  .neuro-wrap svg{width:100%;height:auto;display:block;}
+  .neuro-caption{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);margin-top:10px;letter-spacing:.02em;}
+
+  .stat-row{display:flex;gap:22px;margin-bottom:34px;flex-wrap:wrap;}
+  .stat{flex:1;min-width:120px;}
+  .stat .num{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--text);}
+  .stat .label{font-size:12.5px;color:var(--muted);margin-top:2px;}
+
+  .btn-primary{
+    background:var(--accent);color:#fff;border:none;border-radius:10px;
+    padding:16px 30px;font-size:16px;font-weight:600;
+    display:inline-flex;align-items:center;gap:10px;
+    box-shadow:0 8px 24px -8px rgba(124,92,255,.6);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 28px -8px rgba(124,92,255,.75);}
+  .btn-primary:active{transform:translateY(0);}
+  .btn-primary:focus-visible, button:focus-visible, input:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+
+  .btn-ghost{
+    background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;
+    padding:13px 20px;font-size:14.5px;font-weight:500;
+  }
+  .btn-ghost:hover{color:var(--text);border-color:var(--muted);}
+
+  .fine-print{font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+
+  /* ---------- Quiz ---------- */
+  .quiz-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:16px;}
+  .progress-track{flex:1;height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:99px;transition:width .4s ease;}
+  .q-count{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);white-space:nowrap;}
+  .streak{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--gold);white-space:nowrap;}
+
+  .q-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:32px 28px;margin-bottom:18px;
+  }
+  .q-category{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:10px;font-weight:600;}
+  .q-prompt{font-size:20px;line-height:1.45;font-weight:500;margin-bottom:26px;}
+  .q-visual{font-size:30px;letter-spacing:6px;text-align:center;padding:22px 0;color:var(--gold);font-family:'IBM Plex Mono',monospace;}
+
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:520px){.options{grid-template-columns:1fr;}}
+
+  .matrix-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+    max-width:280px;margin:0 auto 24px;
+  }
+  .matrix-cell{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:8px;
+    aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
+  }
+  .matrix-cell.empty{border:1px dashed var(--accent);background:rgba(124,92,255,.08);}
+  .matrix-cell-svg{width:80%;height:80%;}
+  .matrix-options{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  @media (max-width:480px){.matrix-options{grid-template-columns:repeat(2,1fr);}}
+  .matrix-option{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:8px;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .matrix-option:hover{border-color:var(--accent);}
+  .matrix-option.selected{border-color:var(--accent);background:rgba(124,92,255,.14);}
+  .matrix-option svg{width:100%;height:100%;}
+  .option{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    padding:15px 16px;font-size:15px;text-align:left;color:var(--text);
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .option:hover{border-color:var(--accent);}
+  .option.selected{border-color:var(--accent);background:rgba(124,92,255,.14);}
+  .option.correct{border-color:var(--success);background:rgba(74,222,128,.14);}
+  .option.wrong{border-color:var(--danger);background:rgba(255,107,107,.14);}
+  .option:disabled{cursor:default;}
+
+  .memory-digits{
+    font-family:'IBM Plex Mono',monospace;font-size:34px;letter-spacing:10px;text-align:center;
+    padding:30px 0;color:var(--gold);
+  }
+  .memory-input{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    padding:14px 16px;font-size:18px;font-family:'IBM Plex Mono',monospace;color:var(--text);letter-spacing:4px;text-align:center;
+  }
+  .memory-input:focus{border-color:var(--accent);outline:none;}
+
+  .next-row{display:flex;justify-content:flex-end;}
+
+  /* ---------- Analyzing ---------- */
+  .analyzing{text-align:center;padding:60px 0;}
+  .spinner{width:56px;height:56px;margin:0 auto 26px;border-radius:50%;border:3px solid var(--surface-2);border-top-color:var(--accent);animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .analyzing-line{font-family:'IBM Plex Mono',monospace;font-size:13.5px;color:var(--muted);margin-top:8px;}
+
+  /* ---------- Paywall / report ---------- */
+  .result-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:30px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;
+  }
+  .result-score{font-family:'Space Grotesk',sans-serif;font-size:64px;font-weight:700;line-height:1;margin:6px 0;}
+  .result-label{color:var(--muted);font-size:14px;}
+  .blurred{filter:blur(9px);user-select:none;}
+  .lock-overlay{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:linear-gradient(180deg,rgba(18,20,28,0) 0%, rgba(18,20,28,.85) 40%, rgba(18,20,28,.98) 100%);
+    padding-top:60px;
+  }
+  .lock-icon{width:34px;height:34px;margin-bottom:12px;opacity:.9;}
+  .lock-text{font-size:14.5px;color:var(--text);font-weight:500;margin-bottom:2px;}
+  .lock-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+
+  .cat-bars{display:flex;flex-direction:column;gap:14px;margin:20px 0;}
+  .cat-row{display:flex;align-items:center;gap:12px;}
+  .cat-name{width:130px;font-size:13.5px;color:var(--muted);flex-shrink:0;}
+  .cat-track{flex:1;height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;}
+  .cat-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:99px;}
+  .cat-pct{width:38px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);}
+
+  .price-box{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:20px;
+  }
+  .price-num{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;}
+  .price-desc{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  /* ---------- Modal / checkout ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(8,9,14,.72);backdrop-filter:blur(3px);
+    display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50;overflow-y:auto;
+  }
+  .modal{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    max-width:440px;width:100%;padding:28px;animation:fadeUp .3s ease both;
+  }
+  .modal h3{margin:0 0 6px;font-size:20px;}
+  .modal .modal-sub{color:var(--muted);font-size:13.5px;margin-bottom:22px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;}
+  .field input{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;
+    padding:12px 14px;font-size:14.5px;color:var(--text);font-family:inherit;
+  }
+  .field input:focus{border-color:var(--accent);outline:none;}
+  .field-row{display:flex;gap:12px;}
+  .field-row .field{flex:1;}
+  .pay-methods{display:flex;gap:8px;margin-bottom:18px;}
+  .pay-method{
+    flex:1;border:1px solid var(--border);border-radius:9px;padding:10px;text-align:center;font-size:12.5px;color:var(--muted);
+    background:var(--surface-2);
+  }
+  .pay-method.active{border-color:var(--accent);color:var(--text);background:rgba(124,92,255,.12);}
+  .modal-close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--muted);font-size:20px;line-height:1;}
+  .modal{position:relative;}
+  .modal-fine{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:16px;}
+
+  /* ---------- Full report ---------- */
+  .insight{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;margin-bottom:14px;
+  }
+  .insight h4{margin:0 0 8px;font-size:15px;}
+  .insight p{margin:0;font-size:14px;line-height:1.6;color:var(--muted);}
+
+  .disclaimer-box{
+    background:var(--surface-2);border:1px dashed var(--border);border-radius:12px;
+    padding:18px 20px;font-size:13px;line-height:1.6;color:var(--muted);margin-top:28px;
+  }
+  .disclaimer-box strong{color:var(--text);}
+
+  .course-card{
+    background:linear-gradient(155deg, rgba(124,92,255,.14), rgba(245,185,66,.08));
+    border:1px solid var(--accent-dim);border-radius:var(--radius);
+    padding:26px 24px;margin:22px 0;
+  }
+  .course-card .course-eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:600;margin-bottom:8px;}
+  .course-card h4{margin:0 0 8px;font-size:19px;}
+  .course-card p{margin:0 0 18px;font-size:14px;line-height:1.6;color:var(--muted);}
+  .course-card .btn-primary{width:100%;justify-content:center;}
+  .course-done{text-align:center;font-size:14px;color:var(--success);padding:10px 0;}
+</style>
+</head>
+<body>
+<div class="bg-decor" aria-hidden="true">
+  <div class="bg-shape" style="top:8%;left:4%;font-size:52px;animation-delay:0s;">🧩</div>
+  <div class="bg-shape gold" style="top:22%;left:88%;font-size:38px;animation-delay:2s;">∑</div>
+  <div class="bg-shape" style="top:48%;left:6%;font-size:44px;animation-delay:4s;">π</div>
+  <div class="bg-shape gold" style="top:65%;left:90%;font-size:60px;animation-delay:1s;">🧠</div>
+  <div class="bg-shape" style="top:80%;left:3%;font-size:34px;animation-delay:3s;">△</div>
+  <div class="bg-shape gold" style="top:88%;left:87%;font-size:30px;animation-delay:5s;">?</div>
+  <div class="bg-shape" style="top:5%;left:80%;font-size:30px;animation-delay:6s;">○</div>
+</div>
+<div id="app"></div>
+
+<script>
+(function(){
+  const app = document.getElementById('app');
+
+  // ⚠️ Убедитесь, что бэкенд задеплоен именно на api.cortexiq.kg (см. backend/README.md)
+  const API_BASE_URL = 'https://cortex-backend-k5bq.onrender.com';
+
+  /* ---------------- Data ---------------- */
+  const QUESTIONS = [
+    {cat:'Логика', type:'choice', prompt:'Продолжите последовательность: 2, 4, 8, 16, ?',
+      options:['24','30','32','36'], answer:'32'},
+    {cat:'Логика', type:'visual-choice', prompt:'Какая фигура продолжает ряд?', visual:'▲ ● ■ ▲ ● ■ ▲ ● ?',
+      options:['▲','●','■','♦'], answer:'■'},
+    {cat:'Вербальный', type:'choice', prompt:'Книга относится к «читать» так же, как еда относится к:',
+      options:['Готовить','Есть','Покупать','Хранить'], answer:'Есть'},
+    {cat:'Вербальный', type:'choice', prompt:'Какое слово лишнее: яблоко, банан, морковь, груша?',
+      options:['Яблоко','Банан','Морковь','Груша'], answer:'Морковь'},
+    {cat:'Логика', type:'choice', prompt:'Все A — это Б. Некоторые Б — это В. Следует ли из этого, что некоторые A — это В?',
+      options:['Да, всегда','Нет, никогда','Нельзя определить точно','Только если A = Б'], answer:'Нельзя определить точно'},
+    {cat:'Математика', type:'choice', prompt:'5 станков делают 5 деталей за 5 минут. Сколько минут потребуется 100 станкам, чтобы сделать 100 деталей?',
+      options:['5 минут','20 минут','100 минут','1 минута'], answer:'5 минут'},
+    {cat:'Математика', type:'choice', prompt:'Поезд проехал 60 км за 45 минут. Какова его средняя скорость?',
+      options:['60 км/ч','75 км/ч','80 км/ч','90 км/ч'], answer:'80 км/ч'},
+    {cat:'Логика', type:'choice', prompt:'Продолжите ряд букв: A, C, F, J, ?',
+      options:['M','N','O','P'], answer:'O'},
+    {cat:'Вербальный', type:'choice', prompt:'Дождь относится к «мокрый» так же, как огонь относится к:',
+      options:['Горячий','Яркий','Опасный','Красный'], answer:'Горячий'},
+    {cat:'Математика', type:'choice', prompt:'Ваня втрое старше своей сестры. Через 5 лет ему будет 26. Сколько лет сестре сейчас?',
+      options:['5','6','7','8'], answer:'7'},
+    {cat:'Память', type:'memory', prompt:'Сейчас на экране появится ряд цифр. Запомните его — через несколько секунд нужно будет ввести его в том же порядке.',
+      digits:'482913'},
+    {cat:'Логика', type:'visual-choice', prompt:'Какая фигура продолжает ряд?', visual:'○ ○ ● ○ ○ ● ○ ○ ?',
+      options:['○','●','◐','□'], answer:'●'},
+    {cat:'Логика', type:'choice', prompt:'Продолжите последовательность: 1, 1, 2, 3, 5, 8, ?',
+      options:['11','12','13','14'], answer:'13'},
+    {cat:'Логика', type:'choice', prompt:'Продолжите последовательность: 3, 9, 27, 81, ?',
+      options:['162','200','243','270'], answer:'243'},
+    {cat:'Логика', type:'choice', prompt:'Сегодня понедельник. Какой день недели будет через 100 дней?',
+      options:['Вторник','Среда','Четверг','Пятница'], answer:'Среда'},
+    {cat:'Вербальный', type:'choice', prompt:'Слово, противоположное по значению слову «огромный»:',
+      options:['Огромный','Крошечный','Средний','Широкий'], answer:'Крошечный'},
+    {cat:'Вербальный', type:'choice', prompt:'Учитель относится к «ученик» так же, как врач относится к:',
+      options:['Пациент','Больница','Лекарство','Медсестра'], answer:'Пациент'},
+    {cat:'Вербальный', type:'choice', prompt:'Какое слово лишнее: гитара, скрипка, барабан, кастрюля?',
+      options:['Гитара','Скрипка','Барабан','Кастрюля'], answer:'Кастрюля'},
+    {cat:'Вербальный', type:'choice', prompt:'Слово «эфемерный» ближе всего по значению к:',
+      options:['Вечный','Мимолётный','Прочный','Скучный'], answer:'Мимолётный'},
+    {cat:'Математика', type:'choice', prompt:'Цена товара сначала выросла на 20%, а потом снизилась на 20%. Итоговая цена относительно первоначальной:',
+      options:['Выше','Ниже','Такая же','Нельзя определить'], answer:'Ниже'},
+    {cat:'Математика', type:'choice', prompt:'Сколько будет 15% от 200?',
+      options:['20','25','30','35'], answer:'30'},
+    {cat:'Математика', type:'choice', prompt:'Труба А наполняет бассейн за 4 часа, труба Б — за 6 часов. За сколько часов они наполнят бассейн вместе?',
+      options:['2 часа','2,4 часа','3 часа','5 часов'], answer:'2,4 часа'},
+    {cat:'Математика', type:'choice', prompt:'Если 3x + 7 = 22, чему равен x?',
+      options:['3','4','5','6'], answer:'5'},
+    {cat:'Память', type:'memory', prompt:'Ещё один раунд на память — цифры покажутся чуть дольше, ряд длиннее.',
+      digits:'7053916'},
+    {cat:'Логика', type:'visual-choice', prompt:'Какая фигура продолжает ряд?', visual:'■ □ □ ■ □ □ ■ □ ?',
+      options:['■','□','▲','●'], answer:'□'},
+
+    // ---- Задания в стиле прогрессивных матриц (по образцу Равена) ----
+    {cat:'Логика', type:'matrix', prompt:'Какая фигура дополняет матрицу по смыслу?',
+      grid:[
+        {shape:'circle',count:1,fill:'full',size:13},{shape:'circle',count:2,fill:'full',size:8},{shape:'circle',count:3,fill:'full',size:8},
+        {shape:'square',count:1,fill:'full',size:13},{shape:'square',count:2,fill:'full',size:8},{shape:'square',count:3,fill:'full',size:8},
+        {shape:'triangle',count:1,fill:'full',size:13},{shape:'triangle',count:2,fill:'full',size:8}, null
+      ],
+      options:[
+        {shape:'triangle',count:2,fill:'full',size:8},
+        {shape:'circle',count:3,fill:'full',size:8},
+        {shape:'triangle',count:3,fill:'full',size:8},
+        {shape:'square',count:3,fill:'full',size:8}
+      ], correctIndex:2 },
+    {cat:'Логика', type:'matrix', prompt:'Какая фигура дополняет матрицу по смыслу?',
+      grid:[
+        {shape:'circle',fill:'none',size:13},{shape:'circle',fill:'half',size:13},{shape:'circle',fill:'full',size:13},
+        {shape:'square',fill:'none',size:13},{shape:'square',fill:'half',size:13},{shape:'square',fill:'full',size:13},
+        {shape:'diamond',fill:'none',size:13},{shape:'diamond',fill:'half',size:13}, null
+      ],
+      options:[
+        {shape:'diamond',fill:'half',size:13},
+        {shape:'square',fill:'full',size:13},
+        {shape:'diamond',fill:'full',size:13},
+        {shape:'circle',fill:'full',size:13}
+      ], correctIndex:2 },
+    {cat:'Логика', type:'matrix', prompt:'Какая фигура дополняет матрицу по смыслу?',
+      grid:[
+        {shape:'triangle',rotate:0,fill:'full',size:13},{shape:'triangle',rotate:90,fill:'full',size:13},{shape:'triangle',rotate:180,fill:'full',size:13},
+        {shape:'triangle',rotate:0,fill:'full',size:13},{shape:'triangle',rotate:90,fill:'full',size:13},{shape:'triangle',rotate:180,fill:'full',size:13},
+        {shape:'triangle',rotate:0,fill:'full',size:13},{shape:'triangle',rotate:90,fill:'full',size:13}, null
+      ],
+      options:[
+        {shape:'triangle',rotate:270,fill:'full',size:13},
+        {shape:'triangle',rotate:180,fill:'full',size:13},
+        {shape:'triangle',rotate:0,fill:'full',size:13},
+        {shape:'triangle',rotate:90,fill:'full',size:13}
+      ], correctIndex:1 },
+    {cat:'Логика', type:'matrix', prompt:'Какая фигура дополняет матрицу по смыслу?',
+      grid:[
+        {shape:'square',fill:'full',size:7},{shape:'square',fill:'full',size:12},{shape:'square',fill:'full',size:17},
+        {shape:'square',fill:'full',size:7},{shape:'square',fill:'full',size:12},{shape:'square',fill:'full',size:17},
+        {shape:'square',fill:'full',size:7},{shape:'square',fill:'full',size:12}, null
+      ],
+      options:[
+        {shape:'square',fill:'full',size:12},
+        {shape:'square',fill:'full',size:17},
+        {shape:'circle',fill:'full',size:17},
+        {shape:'square',fill:'full',size:7}
+      ], correctIndex:1 },
+    {cat:'Логика', type:'matrix', prompt:'Какая фигура дополняет матрицу по смыслу?',
+      grid:[
+        {shape:'triangle',fill:'none',rotate:0,size:13},{shape:'triangle',fill:'none',rotate:90,size:13},{shape:'triangle',fill:'none',rotate:180,size:13},
+        {shape:'triangle',fill:'half',rotate:0,size:13},{shape:'triangle',fill:'half',rotate:90,size:13},{shape:'triangle',fill:'half',rotate:180,size:13},
+        {shape:'triangle',fill:'full',rotate:0,size:13},{shape:'triangle',fill:'full',rotate:90,size:13}, null
+      ],
+      options:[
+        {shape:'triangle',fill:'full',rotate:0,size:13},
+        {shape:'triangle',fill:'half',rotate:180,size:13},
+        {shape:'triangle',fill:'full',rotate:90,size:13},
+        {shape:'triangle',fill:'full',rotate:180,size:13}
+      ], correctIndex:3 },
+    {cat:'Логика', type:'matrix', prompt:'Какая фигура дополняет матрицу по смыслу?',
+      grid:[
+        {shape:'triangle',rotate:0,fill:'full',size:13},{shape:'triangle',rotate:90,fill:'full',size:13},{shape:'triangle',rotate:180,fill:'full',size:13},
+        {shape:'triangle',rotate:90,fill:'full',size:13},{shape:'triangle',rotate:180,fill:'full',size:13},{shape:'triangle',rotate:270,fill:'full',size:13},
+        {shape:'triangle',rotate:180,fill:'full',size:13},{shape:'triangle',rotate:270,fill:'full',size:13}, null
+      ],
+      options:[
+        {shape:'triangle',rotate:270,fill:'full',size:13},
+        {shape:'triangle',rotate:90,fill:'full',size:13},
+        {shape:'triangle',rotate:0,fill:'full',size:13},
+        {shape:'triangle',rotate:180,fill:'full',size:13}
+      ], correctIndex:2 }
+  ];
+
+  const FACTS = [
+    { afterIndex: 9, text: 'Мозг взрослого человека потребляет около 20% всей энергии тела — при том, что весит примерно 2% от массы тела.' },
+    { afterIndex: 18, text: 'Кратковременная память способна одновременно удерживать в среднем 4–7 объектов — именно поэтому номера телефонов разбивают на группы цифр.' },
+    { afterIndex: 27, text: 'Задания на визуальные матрицы (как те, что вы только что решали) появились в 1930-х — их придумали, чтобы оценивать мышление без привязки к языку или образованию.' }
+  ];
+
+  let idx = 0;
+  let answers = []; // {correct:bool, cat}
+  let streak = 0;
+  let startTime = null;
+
+  /* ---------------- Helpers ---------------- */
+  function h(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstElementChild; }
+  function render(node){ app.innerHTML=''; app.appendChild(node); window.scrollTo({top:0,behavior:'smooth'}); }
+
+  /* ---- Отрисовка фигур для матричных заданий (полностью оригинальная графика) ---- */
+  function shapeMarkup(p){
+    if(!p) return '';
+    const cx=30, cy=30, s=p.size||13, rot=p.rotate||0, gold='var(--gold)';
+    let fillAttr, strokeAttr='none', sw=0;
+    if(p.fill==='none'){ fillAttr='none'; strokeAttr=gold; sw=3; }
+    else if(p.fill==='half'){ fillAttr='url(#matrixHalfFill)'; strokeAttr=gold; sw=2; }
+    else { fillAttr=gold; }
+
+    let shape='';
+    if(p.shape==='circle') shape=`<circle cx="${cx}" cy="${cy}" r="${s}" fill="${fillAttr}" stroke="${strokeAttr}" stroke-width="${sw}"/>`;
+    else if(p.shape==='square') shape=`<rect x="${cx-s}" y="${cy-s}" width="${s*2}" height="${s*2}" fill="${fillAttr}" stroke="${strokeAttr}" stroke-width="${sw}"/>`;
+    else if(p.shape==='triangle') shape=`<polygon points="${cx},${cy-s} ${cx+s},${cy+s} ${cx-s},${cy+s}" fill="${fillAttr}" stroke="${strokeAttr}" stroke-width="${sw}"/>`;
+    else if(p.shape==='diamond') shape=`<polygon points="${cx},${cy-s} ${cx+s},${cy} ${cx},${cy+s} ${cx-s},${cy}" fill="${fillAttr}" stroke="${strokeAttr}" stroke-width="${sw}"/>`;
+
+    return `<g transform="rotate(${rot} ${cx} ${cy})">${shape}</g>`;
+  }
+
+  function cellSVG(p, count){
+    const defs = `<defs><linearGradient id="matrixHalfFill" x1="0" x2="1" y1="0" y2="0"><stop offset="50%" stop-color="var(--gold)"/><stop offset="50%" stop-color="transparent"/></linearGradient></defs>`;
+    if(!p){
+      return `<svg viewBox="0 0 60 60" class="matrix-cell-svg">${defs}<text x="30" y="39" text-anchor="middle" font-size="24" fill="var(--accent)" font-family="IBM Plex Mono, monospace">?</text></svg>`;
+    }
+    const n = p.count || 1;
+    let inner = '';
+    if(n === 1){
+      inner = shapeMarkup(p);
+    } else {
+      const spacing = 60/(n+1);
+      for(let i=0;i<n;i++){
+        inner += `<g transform="translate(${spacing*(i+1)-30},0)">${shapeMarkup(p)}</g>`;
+      }
+    }
+    return `<svg viewBox="0 0 60 60" class="matrix-cell-svg">${defs}${inner}</svg>`;
+  }
+
+  function neuroSVG(){
+    // simple animated node/edge grid — signature hero element
+    const pts = [[20,20],[80,15],[140,25],[190,60],[150,95],[90,100],[40,90],[10,55],[110,60]];
+    let circles='', lines='';
+    pts.forEach((p,i)=>{
+      circles += `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--gold)" opacity="0.9">
+        <animate attributeName="r" values="3;5;3" dur="${2+ (i%3)}s" repeatCount="indefinite"/>
+      </circle>`;
+    });
+    const edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[1,8],[8,4],[6,8]];
+    edges.forEach((e,i)=>{
+      const a=pts[e[0]], b=pts[e[1]];
+      lines += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="var(--accent)" stroke-width="1.2" opacity="0.35">
+        <animate attributeName="opacity" values="0.15;0.55;0.15" dur="${3+(i%4)}s" repeatCount="indefinite"/>
+      </line>`;
+    });
+    return `<svg viewBox="0 0 200 115" xmlns="http://www.w3.org/2000/svg">${lines}${circles}</svg>`;
+  }
+
+  /* ---------------- Screens ---------------- */
+  function screenHero(){
+    const el = h(`
+      <div class="screen">
+        <div class="hero-top">
+          <div class="logo"><span class="logo-mark">${miniMark()}</span> Cortex</div>
+          <div class="eyebrow">Тест на IQ · 31 задание · ~15 минут</div>
+        </div>
+        <h1>Какой у тебя <em>уровень IQ</em>?</h1>
+        <p class="sub">31 задание на логику, память, вербальное и числовое мышление, включая визуальные матрицы — покажут ваш результат по 100-балльной шкале интеллекта, с разбивкой по категориям мышления.</p>
+
+        <div class="neuro-wrap">
+          ${neuroSVG()}
+          <div class="neuro-caption">// живая карта того, как разные типы заданий связаны между собой</div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat"><div class="num">4</div><div class="label">категории мышления</div></div>
+          <div class="stat"><div class="num">31</div><div class="label">заданий</div></div>
+          <div class="stat"><div class="num">~15 мин</div><div class="label">среднее время</div></div>
+        </div>
+
+        <button class="btn-primary" id="start-btn">Начать тест →</button>
+
+        <div class="fine-print">
+          Это развлекательный тест на когнитивные способности. Он не является валидированным клиническим IQ-тестом
+          и не заменяет профессиональную психологическую диагностику — воспринимайте результат как ориентир, а не диагноз.
+        </div>
+      </div>
+    `);
+    el.querySelector('#start-btn').addEventListener('click', ()=>{
+      startTime = Date.now();
+      idx=0; answers=[]; streak=0;
+      render(screenQuestion());
+    });
+    return el;
+  }
+
+  function miniMark(){
+    return `<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="11" cy="11" r="2.4" fill="var(--gold)"/></svg>`;
+  }
+
+  function screenQuestion(){
+    const q = QUESTIONS[idx];
+    const pct = Math.round((idx/QUESTIONS.length)*100);
+    const wrap = h(`
+      <div class="screen">
+        <div class="quiz-header">
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="q-count mono">${idx+1} / ${QUESTIONS.length}</div>
+        </div>
+        ${idx === Math.floor(QUESTIONS.length/2) ? `<div class="streak" style="color:var(--accent);">⚡ Половина позади — самое интересное впереди</div>` : ''}
+        <div class="q-card" id="q-card">
+          <div class="q-category">${q.cat}</div>
+          <div class="q-prompt">${q.prompt}</div>
+          ${q.type==='visual-choice' ? `<div class="q-visual">${q.visual}</div>` : ''}
+          ${q.type==='memory' ? memoryBlock(q) : (q.type==='matrix' ? matrixBlock(q) : optionsBlock(q))}
+        </div>
+      </div>
+    `);
+    if(q.type==='matrix'){
+      wrap.querySelectorAll('.matrix-option').forEach(btn=>{
+        btn.addEventListener('click', ()=> handleMatrixAnswer(btn, q));
+      });
+    } else if(q.type!=='memory'){
+      wrap.querySelectorAll('.option').forEach(btn=>{
+        btn.addEventListener('click', ()=> handleAnswer(btn, q));
+      });
+    }
+    return wrap;
+  }
+
+  function matrixBlock(q){
+    const cells = q.grid.map(cell => `<div class="matrix-cell ${cell?'':'empty'}">${cellSVG(cell)}</div>`).join('');
+    const options = q.options.map((o,i) => `<button class="matrix-option" data-idx="${i}">${cellSVG(o)}</button>`).join('');
+    return `
+      <div class="matrix-grid">${cells}</div>
+      <div class="matrix-options">${options}</div>
+      <div class="next-row" style="margin-top:18px;"></div>
+    `;
+  }
+
+  function optionsBlock(q){
+    return `<div class="options">${q.options.map(o=>`<button class="option">${o}</button>`).join('')}</div>
+            <div class="next-row" style="margin-top:18px;"></div>`;
+  }
+
+  function memoryBlock(q){
+    return `
+      <div id="memory-stage">
+        <div class="memory-digits" id="memory-digits">${q.digits}</div>
+        <div style="text-align:center;color:var(--muted);font-size:13px;" id="memory-timer">Запоминайте... 4</div>
+      </div>
+    `;
+  }
+
+  function handleAnswer(btn, q){
+    const card = document.getElementById('q-card');
+    const isCorrect = btn.textContent === q.answer;
+    card.querySelectorAll('.option').forEach(b=>{
+      b.disabled = true;
+      if(b===btn) b.classList.add('selected');
+    });
+    answers.push({correct:isCorrect, cat:q.cat});
+    streak = isCorrect ? streak+1 : 0;
+    setTimeout(nextQuestion, 450);
+  }
+
+  function handleMatrixAnswer(btn, q){
+    const card = document.getElementById('q-card');
+    const chosenIdx = Number(btn.dataset.idx);
+    const isCorrect = chosenIdx === q.correctIndex;
+    card.querySelectorAll('.matrix-option').forEach(b=>{
+      b.disabled = true;
+      if(b===btn) b.classList.add('selected');
+    });
+    answers.push({correct:isCorrect, cat:q.cat});
+    streak = isCorrect ? streak+1 : 0;
+    setTimeout(nextQuestion, 450);
+  }
+
+  function nextQuestion(){
+    idx++;
+    const fact = FACTS.find(f => f.afterIndex === idx);
+    if(fact){
+      render(screenFact(fact));
+    } else if(idx >= QUESTIONS.length){
+      render(screenAnalyzing());
+    } else {
+      render(screenQuestion());
+    }
+  }
+
+  function screenFact(fact){
+    const el = h(`
+      <div class="screen">
+        <div class="q-card" style="text-align:center;padding:40px 28px;">
+          <div style="font-size:30px;margin-bottom:14px;">🧠</div>
+          <div class="q-category">Пока мозг отдыхает</div>
+          <div class="q-prompt" style="font-size:17px;font-weight:400;color:var(--muted);">${fact.text}</div>
+          <button class="btn-primary" id="fact-continue" style="margin-top:10px;">Продолжить тест →</button>
+        </div>
+      </div>
+    `);
+    el.querySelector('#fact-continue').addEventListener('click', ()=>{
+      if(idx >= QUESTIONS.length){
+        render(screenAnalyzing());
+      } else {
+        render(screenQuestion());
+      }
+    });
+    return el;
+  }
+
+  // wire up memory question after render, since it needs a timed reveal
+  const origRender = render;
+  render = function(node){
+    origRender(node);
+    const q = QUESTIONS[idx];
+    if(q && q.type==='memory' && document.getElementById('memory-stage')){
+      let t = 4;
+      const timerEl = document.getElementById('memory-timer');
+      const iv = setInterval(()=>{
+        t--;
+        if(t<=0){
+          clearInterval(iv);
+          showMemoryInput(q);
+        } else {
+          timerEl.textContent = 'Запоминайте... ' + t;
+        }
+      },1000);
+    }
+  };
+
+  function showMemoryInput(q){
+    const card = document.getElementById('q-card');
+    const stage = document.getElementById('memory-stage');
+    stage.innerHTML = `
+      <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:8px;">Введите цифры в том же порядке:</label>
+      <input class="memory-input" id="memory-input" maxlength="${q.digits.length}" inputmode="numeric" autocomplete="off" placeholder="••••••">
+      <div class="next-row" style="margin-top:16px;">
+        <button class="btn-primary" id="memory-submit">Подтвердить</button>
+      </div>
+    `;
+    const input = document.getElementById('memory-input');
+    input.focus();
+    document.getElementById('memory-submit').addEventListener('click', ()=>{
+      const isCorrect = input.value.trim() === q.digits;
+      answers.push({correct:isCorrect, cat:q.cat});
+      streak = isCorrect ? streak+1 : 0;
+      input.disabled = true;
+      document.getElementById('memory-submit').disabled = true;
+      setTimeout(nextQuestion, 400);
+    });
+    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('memory-submit').click(); });
+  }
+
+  function screenAnalyzing(){
+    const el = h(`
+      <div class="screen analyzing">
+        <div class="spinner"></div>
+        <h3>Обрабатываем ответы…</h3>
+        <div class="analyzing-line mono">сопоставляем паттерны · считаем баллы по категориям</div>
+      </div>
+    `);
+    setTimeout(()=> render(screenPaywall()), 1600);
+    return el;
+  }
+
+  function computeScores(){
+    const cats = {};
+    answers.forEach(a=>{
+      cats[a.cat] = cats[a.cat] || {correct:0,total:0};
+      cats[a.cat].total++;
+      if(a.correct) cats[a.cat].correct++;
+    });
+    const totalCorrect = answers.filter(a=>a.correct).length;
+    const overall = Math.round((totalCorrect/answers.length)*100);
+    return {cats, overall};
+  }
+
+  function screenPaywall(){
+    const {cats, overall} = computeScores();
+    const el = h(`
+      <div class="screen">
+        <div class="eyebrow">Тест завершён</div>
+        <h2 style="margin:0 0 20px;">Ваш результат готов</h2>
+
+        <div class="result-card">
+          <div class="result-label">Ваш IQ-балл</div>
+          <div class="result-score blurred">${overall}</div>
+          <div class="result-label blurred" style="margin-bottom:10px;">по шкале Cortex · выше среднего</div>
+
+          <div class="cat-bars blurred">
+            ${Object.keys(cats).map(c=>catRow(c,cats[c])).join('')}
+          </div>
+
+          <div class="lock-overlay">
+            <div class="lock-icon">${lockIcon()}</div>
+            <div class="lock-text">Полный отчёт скрыт</div>
+            <div class="lock-sub">Разблокируйте разбивку по категориям и сравнение с другими</div>
+          </div>
+        </div>
+
+        <div class="price-box">
+          <div>
+            <div class="price-num">69 сом</div>
+            <div class="price-desc">Разовая оплата · без автосписаний</div>
+          </div>
+          <button class="btn-primary" id="unlock-btn">Разблокировать отчёт</button>
+        </div>
+
+        <div class="fine-print">
+          Оплата разовая. Результат отправляется на указанный email. Мы не списываем деньги повторно и не оформляем скрытую подписку.
+        </div>
+      </div>
+    `);
+    el.querySelector('#unlock-btn').addEventListener('click', ()=> openCheckout(overall, cats));
+    return el;
+  }
+
+  function catRow(name, data){
+    const pct = Math.round((data.correct/data.total)*100);
+    return `<div class="cat-row">
+      <div class="cat-name">${name}</div>
+      <div class="cat-track"><div class="cat-fill" style="width:${pct}%"></div></div>
+      <div class="cat-pct mono">${pct}%</div>
+    </div>`;
+  }
+
+  function lockIcon(){
+    return `<svg width="34" height="34" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--muted)" stroke-width="1.6"/><path d="M8 11V7a4 4 0 018 0v4" stroke="var(--muted)" stroke-width="1.6"/></svg>`;
+  }
+
+  /* ---------------- Checkout modal ---------------- */
+  function openCheckout(overall, cats){
+    const backdrop = h(`
+      <div class="modal-backdrop">
+        <div class="modal">
+          <button class="modal-close" id="modal-close">×</button>
+          <h3>Разблокировать отчёт</h3>
+          <div class="modal-sub">69 сом · результат придёт на email сразу после оплаты</div>
+
+          <div id="checkout-step-email">
+            <div class="field">
+              <label>Email для отправки результата</label>
+              <input type="email" id="email-input" placeholder="you@example.com" required>
+            </div>
+            <button class="btn-primary" id="pay-btn" style="width:100%;justify-content:center;">Получить QR для оплаты — 69 сом</button>
+            <div class="modal-fine">Нажимая «Получить QR», вы соглашаетесь получить результат теста на указанный email. Платёж разовый, без подписки.</div>
+          </div>
+
+          <div id="checkout-step-qr" style="display:none;text-align:center;">
+            <img id="qr-image" src="" alt="QR для оплаты" style="width:220px;height:220px;margin:0 auto 14px;display:block;border-radius:10px;background:#fff;padding:8px;">
+            <p style="font-size:13.5px;color:var(--muted);margin:0 0 6px;">
+              Отсканируйте банковским приложением (MBank, O!Dengi и т.п.)
+            </p>
+            <p style="font-size:13px;margin:0 0 18px;">
+              Не открывается камера? <a id="redirect-link" href="#" target="_blank" style="color:var(--accent);">Оплатить картой по ссылке</a>
+            </p>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13px;">
+              <div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;"></div>
+              <span id="qr-status-text">Ожидаем оплату…</span>
+            </div>
+          </div>
+
+          <div id="checkout-step-error" style="display:none;color:var(--danger);font-size:13.5px;text-align:center;"></div>
+        </div>
+      </div>
+    `);
+    document.body.appendChild(backdrop);
+    let pollTimer = null;
+
+    function closeModal(){
+      if(pollTimer) clearInterval(pollTimer);
+      backdrop.remove();
+    }
+    backdrop.querySelector('#modal-close').addEventListener('click', closeModal);
+    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) closeModal(); });
+
+    backdrop.querySelector('#pay-btn').addEventListener('click', async ()=>{
+      const emailInput = backdrop.querySelector('#email-input');
+      const email = emailInput.value.trim();
+      if(!email || !email.includes('@')){
+        emailInput.style.borderColor = 'var(--danger)';
+        return;
+      }
+
+      const payBtn = backdrop.querySelector('#pay-btn');
+      payBtn.textContent = 'Создаём платёж…';
+      payBtn.disabled = true;
+
+      try{
+        const resp = await fetch(`${API_BASE_URL}/api/create-payment`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ email, overall, cats })
+        });
+        const data = await resp.json();
+
+        if(!resp.ok || data.error){
+          throw new Error(data.error || 'Не удалось создать платёж');
+        }
+
+        backdrop.querySelector('#checkout-step-email').style.display = 'none';
+        backdrop.querySelector('#checkout-step-qr').style.display = 'block';
+        backdrop.querySelector('#qr-image').src = `data:image/png;base64,${data.qrCodeBase64 || ''}`;
+        backdrop.querySelector('#redirect-link').href = data.redirectUrl;
+
+        // опрашиваем backend раз в 3 секунды — как только оплата подтвердится
+        // через result_url на сервере, paid станет true
+        pollTimer = setInterval(async ()=>{
+          try{
+            const statusResp = await fetch(`${API_BASE_URL}/api/payment-status/${data.paymentId}`);
+            const statusData = await statusResp.json();
+            if(statusData.paid){
+              clearInterval(pollTimer);
+              closeModal();
+              render(screenReport(overall, cats, email));
+            }
+          }catch(e){ /* сеть могла моргнуть — просто попробуем на следующем тике */ }
+        }, 3000);
+
+      }catch(err){
+        backdrop.querySelector('#checkout-step-email').style.display = 'none';
+        const errBox = backdrop.querySelector('#checkout-step-error');
+        errBox.style.display = 'block';
+        errBox.textContent = 'Не получилось создать платёж. Попробуйте ещё раз чуть позже.';
+      }
+    });
+  }
+
+  /* ---------------- Full report ---------------- */
+  const COURSES = {
+    'Логика': { title: 'Тренажёр логического мышления', desc: 'Ежедневные головоломки, последовательности и логические задачи — 15 минут в день, прогресс виден за 2 недели.' },
+    'Вербальный': { title: 'Курс «Слово и смысл»', desc: 'Расширение словарного запаса, аналогии, скорочтение — для тех, кто хочет мыслить точнее и говорить убедительнее.' },
+    'Математика': { title: 'Числовое мышление без школьной скуки', desc: 'Быстрый устный счёт, прикладная логика чисел, задачи из реальной жизни — без формул ради формул.' },
+    'Память': { title: 'Тренажёр памяти', desc: 'Техники запоминания, которые используют мнемонисты — числа, имена, списки держатся в голове дольше.' }
+  };
+
+  function screenReport(overall, cats, email){
+    const strongest = Object.keys(cats).reduce((a,b)=> (cats[a].correct/cats[a].total) >= (cats[b].correct/cats[b].total) ? a : b);
+    const weakest = Object.keys(cats).reduce((a,b)=> (cats[a].correct/cats[a].total) <= (cats[b].correct/cats[b].total) ? a : b);
+    const course = COURSES[weakest];
+
+    const el = h(`
+      <div class="screen">
+        <div class="eyebrow">Отчёт разблокирован</div>
+        <h2 style="margin:0 0 6px;">Ваш полный результат</h2>
+        <p style="color:var(--muted);font-size:14px;margin:0 0 20px;">Также отправлен на ${escapeHTML(email)}</p>
+
+        <div class="result-card">
+          <div class="result-label">Ваш IQ-балл</div>
+          <div class="result-score">${overall}</div>
+          <div class="result-label" style="margin-bottom:10px;">по шкале Cortex</div>
+          <div class="cat-bars">
+            ${Object.keys(cats).map(c=>catRow(c,cats[c])).join('')}
+          </div>
+        </div>
+
+        <div class="insight">
+          <h4>💪 Сильная сторона: ${strongest}</h4>
+          <p>В этой категории вы показали лучший результат среди всех типов заданий теста.</p>
+        </div>
+        <div class="insight">
+          <h4>🎯 Точка роста: ${weakest}</h4>
+          <p>Задания этой категории дались сложнее остальных — логичное направление для тренировки.</p>
+        </div>
+
+        <div class="course-card" id="course-card">
+          <div class="course-eyebrow">Рекомендация под ваш результат</div>
+          <h4>${course.title}</h4>
+          <p>${course.desc}</p>
+          <button class="btn-primary" id="waitlist-btn">Записаться в лист ожидания</button>
+        </div>
+
+        <div class="disclaimer-box">
+          <strong>Важно понимать методологию.</strong> Cortex — развлекательный тест на когнитивные способности из 31 задания.
+          Это не валидированный психометрический инструмент вроде WAIS или Raven's Progressive Matrices, и результат
+          не является медицинским или психологическим диагнозом. Относитесь к числу как к любопытному снимку дня,
+          а не к точной характеристике интеллекта.
+        </div>
+      </div>
+    `);
+
+    el.querySelector('#waitlist-btn').addEventListener('click', async (e)=>{
+      const btn = e.target;
+      btn.disabled = true;
+      btn.textContent = 'Записываем…';
+      try{
+        await fetch(`${API_BASE_URL}/api/waitlist`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ email, category: weakest })
+        });
+      }catch(err){ /* даже если запрос не прошёл, не блокируем пользователя сообщением об ошибке — это необязательный шаг */ }
+      const card = document.getElementById('course-card');
+      card.innerHTML = `<div class="course-done">✓ Готово — напишем на ${escapeHTML(email)}, когда курс откроется</div>`;
+    });
+
+    return el;
+  }
+
+  function escapeHTML(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  /* ---------------- Boot ---------------- */
+  render(screenHero());
+})();
+</script>
+</body>
+</html>
