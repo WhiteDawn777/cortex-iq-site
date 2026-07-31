@@ -108,6 +108,8 @@
     transform-style:preserve-3d;
     transition:transform .28s ease-out;
   }
+  #bot-eyes{ transition:transform .2s ease-out; }
+  #bot-glare{ transition:cx .2s ease-out, cy .2s ease-out; }
   @keyframes botIdleBob{
     0%,100%{transform:translateY(0) rotate(-1deg);}
     50%{transform:translateY(-16px) rotate(1deg);}
@@ -372,10 +374,19 @@
   <div class="bot-bob">
     <svg id="bot-svg" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <radialGradient id="botHeadGrad" cx="35%" cy="22%" r="85%">
+        <radialGradient id="botHeadGrad" cx="32%" cy="20%" r="90%">
           <stop offset="0%" stop-color="#ffffff"/>
-          <stop offset="55%" stop-color="#e6e8f0"/>
-          <stop offset="100%" stop-color="#b7bcd6"/>
+          <stop offset="35%" stop-color="#eef0f6"/>
+          <stop offset="65%" stop-color="#c3c7db"/>
+          <stop offset="100%" stop-color="#8a90ac"/>
+        </radialGradient>
+        <radialGradient id="botAO" cx="72%" cy="78%" r="55%">
+          <stop offset="0%" stop-color="#4a4f6e" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="#4a4f6e" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="botGlare" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
         </radialGradient>
         <linearGradient id="botEarGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#7ef0e0"/>
@@ -413,7 +424,9 @@
 
       <!-- main body / head -->
       <ellipse cx="100" cy="118" rx="80" ry="90" fill="url(#botHeadGrad)" stroke="#9296b0" stroke-width="0.8"/>
+      <ellipse cx="100" cy="118" rx="80" ry="90" fill="url(#botAO)"/>
       <ellipse cx="72" cy="60" rx="30" ry="18" fill="#ffffff" opacity="0.55"/>
+      <ellipse id="bot-glare" cx="65" cy="55" rx="26" ry="16" fill="url(#botGlare)"/>
 
       <!-- belly panel -->
       <rect x="76" y="172" width="48" height="30" rx="12" fill="url(#botBellyGrad)"/>
@@ -1177,6 +1190,8 @@
   (function initCursorBot(){
     const bot = document.getElementById('cursor-bot');
     const svg = document.getElementById('bot-svg');
+    const glare = document.getElementById('bot-glare');
+    const eyes = document.getElementById('bot-eyes');
     if(!bot || !svg) return;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if(reducedMotion) return;
@@ -1195,10 +1210,20 @@
       const nx = Math.max(-1, Math.min(1, dx/500));
       const ny = Math.max(-1, Math.min(1, dy/500));
 
-      const tiltY = nx * 30;   // whole body turns left/right toward cursor
-      const tiltX = -ny * 16;  // whole body tilts up/down toward cursor
-      const leanX = nx * 14;   // slight lean, without chasing the cursor across the screen
+      // small rotation only — a full flat SVG plane rotated too far reveals it's flat,
+      // so most of the "roundness" cue comes from the moving glare highlight below
+      const tiltY = nx * 9;
+      const tiltX = -ny * 5;
+      const leanX = nx * 12;
       svg.style.transform = `translateX(${leanX}px) rotateY(${tiltY}deg) rotateX(${tiltX}deg)`;
+
+      if(glare){
+        glare.setAttribute('cx', (65 + nx*30).toFixed(1));
+        glare.setAttribute('cy', (55 + ny*35).toFixed(1));
+      }
+      if(eyes){
+        eyes.style.transform = `translate(${nx*6}px, ${ny*4}px)`;
+      }
     }
 
     window.addEventListener('mousemove', e => lookAt(e.clientX, e.clientY), { passive:true });
